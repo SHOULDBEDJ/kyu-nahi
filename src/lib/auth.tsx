@@ -130,12 +130,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatarUrl: null,
           permissions: { all: true }
         };
-        await supabase.from("activity_log").insert({
+        const { error } = await supabase.from("activity_log").insert({
           module: "INTERNAL_AUTH",
           action: "USER_DATA",
           detail: JSON.stringify(defaultAdmin),
-          user_id: "system"
+          user_id: "00000000-0000-0000-0000-000000000000" // Use valid UUID format
         });
+        
+        if (error) {
+          console.error("Provisioning failed. This is usually due to RLS policies. Please run the SQL migration for activity_log policies.", error);
+        } else {
+          console.log("Provisioning successful!");
+        }
       }
     })();
 
