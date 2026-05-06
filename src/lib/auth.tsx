@@ -82,7 +82,9 @@ async function loadProfile(userId: string): Promise<AuthUser | null> {
           isVaultUser: true,
         };
       }
-    } catch (e) {}
+    } catch (e) {
+      // Ignore parsing errors for vault users
+    }
   }
 
   return null;
@@ -189,7 +191,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             toast.success("Welcome back, " + u.fullName);
             return;
           }
-        } catch (e) {}
+        } catch (e) {
+          // Ignore parsing errors for individual logs
+        }
       }
     }
 
