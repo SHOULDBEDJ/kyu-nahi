@@ -135,8 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("Provisioning default admin...");
         const defaultAdmin = {
           id: "admin-001",
-          username: "farmhouse@123",
-          password: "farmhouse@123",
+          username: "narayansolanke",
+          password: "narayansolanke",
           fullName: "Narayan Solanki",
           role: "SuperAdmin",
           avatarUrl: null,
