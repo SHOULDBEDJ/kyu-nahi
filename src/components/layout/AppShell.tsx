@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
-import { BottomNav } from "./BottomNav";
 
 export function AppShell() {
   const [open, setOpen] = useState(false);
@@ -32,10 +31,9 @@ export function AppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setOpen(true)} />
-        <main className="flex-1 overflow-x-hidden p-3 pb-20 sm:p-4 md:p-6 md:pb-6">
+        <main className="flex-1 overflow-x-hidden p-3 sm:p-4 md:p-6">
           <Outlet />
         </main>
-        <BottomNav />
       </div>
     </div>
   );
