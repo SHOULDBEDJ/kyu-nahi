@@ -62,6 +62,13 @@
 
   --color-sidebar: var(--navy);
   --color-sidebar-foreground: oklch(1 0 0);
+
+  @keyframes loading-bar {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(0%); }
+    100% { transform: translateX(100%); }
+  }
+  --animate-loading-bar: loading-bar 2s ease-in-out infinite;
 }
 
 :root {
@@ -138,17 +145,6 @@
   --input: oklch(1 0 0 / 12%);
 }
 
-@layer utilities {
-  .animate-loading-bar {
-    animation: loading-bar 2s ease-in-out infinite;
-  }
-}
-
-@keyframes loading-bar {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(0%); }
-  100% { transform: translateX(100%); }
-}
 
 @layer base {
   * { border-color: var(--color-border); }
