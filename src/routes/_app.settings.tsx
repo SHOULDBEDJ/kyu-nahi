@@ -47,7 +47,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/settings")({
@@ -364,7 +364,7 @@ function SettingsPage() {
 
         <div className="lg:hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <ScrollArea className="w-full" orientation="horizontal">
+            <ScrollArea className="w-full">
               <TabsList className="flex w-max h-auto p-1 bg-muted/50">
                 {filteredSections.map((s) => (
                   <TabsTrigger key={s.id} value={s.id} className="text-[10px] py-2 px-3">
@@ -373,6 +373,7 @@ function SettingsPage() {
                   </TabsTrigger>
                 ))}
               </TabsList>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </Tabs>
         </div>

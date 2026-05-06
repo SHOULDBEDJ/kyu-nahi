@@ -76,6 +76,7 @@ function UsersPage() {
   const [formData, setFormData] = useState({
     fullName: "",
     username: "",
+    email: "",
     password: "",
     role: "Staff" as any,
     permissions: {
@@ -117,10 +118,10 @@ function UsersPage() {
 
       // Fetch deleted markers
       const deletedIds = (vaultLogs ?? [])
-        .filter((log) => log.action === "USER_DELETED")
+        .filter((log) => log.action === "USER_DELETED" && log.detail)
         .map((log) => {
           try {
-            return JSON.parse(log.detail).id;
+            return JSON.parse(log.detail!).id;
           } catch (e) {
             return null;
           }
@@ -128,10 +129,10 @@ function UsersPage() {
         .filter(Boolean);
 
       const vaultList = (vaultLogs ?? [])
-        .filter((log) => log.action === "USER_DATA")
+        .filter((log) => log.action === "USER_DATA" && log.detail)
         .map((log) => {
           try {
-            const u = JSON.parse(log.detail);
+            const u = JSON.parse(log.detail!);
             if (deletedIds.includes(u.id)) return null; // Skip deleted ones
             return {
               id: u.id,
@@ -194,6 +195,7 @@ function UsersPage() {
     setFormData({
       fullName: u.full_name,
       username: u.username,
+      email: u.email || "",
       password: "", // Don't show password
       role: u.role as any,
       permissions: u.permissions || {

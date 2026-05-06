@@ -175,9 +175,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (vaultUsers) {
       for (const log of vaultUsers) {
         try {
+          if (!log.detail) continue;
           const u = JSON.parse(log.detail);
           if (u.username === username && u.password === password) {
-            localStorage.setItem("vault_session_id", u.id);
+            if (u.id) localStorage.setItem("vault_session_id", u.id);
             setUser({
               id: u.id,
               username: u.username,

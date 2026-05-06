@@ -46,11 +46,13 @@ function ReportsPage() {
       .order("created_at", { ascending: false })
       .limit(10);
     setHistory(
-      (h ?? []).map((item) => ({
-        ...JSON.parse(item.detail),
-        id: item.id,
-        created_at: item.created_at,
-      })),
+      (h ?? [])
+        .filter((item) => item.detail)
+        .map((item) => ({
+          ...JSON.parse(item.detail!),
+          id: item.id,
+          created_at: item.created_at,
+        })),
     );
     setLoadingHistory(false);
   };
@@ -326,7 +328,7 @@ function ReportsPage() {
           </label>
           <div className="flex items-end gap-2">
             <button
-              onClick={generate}
+              onClick={() => generate()}
               disabled={selected.length === 0}
               className="flex-1 rounded-md bg-navy px-4 py-2 text-sm text-white disabled:opacity-50"
             >

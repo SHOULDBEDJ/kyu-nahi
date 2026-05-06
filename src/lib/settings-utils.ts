@@ -49,7 +49,7 @@ export const generateFullBackup = async () => {
   };
 
   for (const table of tables) {
-    const { data, error } = await supabase.from(table).select("*");
+    const { data, error } = await supabase.from(table as any).select("*");
     if (error) {
       console.error(`Error backing up table ${table}:`, error);
       continue;
@@ -80,7 +80,7 @@ export const restoreFromBackup = async (backupJson: any) => {
     }
 
     const { error } = await supabase
-      .from(table)
+      .from(table as any)
       .upsert(backupJson.data[table], { onConflict: "id" });
     if (error) {
       results.errors.push(`${table}: ${error.message}`);

@@ -24,7 +24,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const { data: newData } = await supabase
             .from("settings")
             .insert({
-              farm_name: "The 16 EYES Farm House",
+              farmhouse_name: "The 16 EYES Farm House",
               accent_color: "#1a237e",
             })
             .select("*")

@@ -26,8 +26,8 @@ import { formatINR, formatDateIST } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/bookings")({
   head: () => ({ meta: [{ title: "Bookings | 16 Eyes Farm House" }] }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    new: search.new === true || search.new === "true",
+  validateSearch: (search: Record<string, unknown>): { new?: boolean } => ({
+    new: search.new === true || search.new === "true" || undefined,
   }),
   component: BookingsPage,
 });
@@ -82,11 +82,13 @@ function BookingsPage() {
 
     setRows((bks ?? []) as any);
     setDrafts(
-      (drfts ?? []).map((d) => ({
-        ...JSON.parse(d.detail),
-        log_id: d.id,
-        created_at: d.created_at,
-      })),
+      (drfts ?? [])
+        .filter((d) => d.detail)
+        .map((d) => ({
+          ...JSON.parse(d.detail!),
+          log_id: d.id,
+          created_at: d.created_at,
+        })),
     );
 
     if (log?.detail) {

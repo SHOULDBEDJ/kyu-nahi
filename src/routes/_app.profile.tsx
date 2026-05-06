@@ -83,7 +83,7 @@ function ProfilePage() {
           .like("detail", `%${user.id}%`)
           .maybeSingle();
 
-        if (log) {
+        if (log && log.detail) {
           const detail = JSON.parse(log.detail);
           detail.avatarUrl = publicUrl;
           const { error: updateError } = await supabase
@@ -123,7 +123,7 @@ function ProfilePage() {
           .like("detail", `%${user.id}%`)
           .maybeSingle();
 
-        if (log) {
+        if (log && log.detail) {
           const detail = JSON.parse(log.detail);
           detail.fullName = fullName;
           detail.username = username;
@@ -155,6 +155,7 @@ function ProfilePage() {
   };
 
   const updatePassword = async () => {
+    if (!user) return;
     if (pw.length < 8) return toast.error("Password must be at least 8 characters");
     setSaving(true);
     try {
@@ -167,7 +168,7 @@ function ProfilePage() {
           .like("detail", `%${user.id}%`)
           .maybeSingle();
 
-        if (log) {
+        if (log && log.detail) {
           const detail = JSON.parse(log.detail);
           detail.password = pw;
           const { error } = await supabase
