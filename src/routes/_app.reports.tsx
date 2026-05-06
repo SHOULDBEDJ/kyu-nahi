@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { BarChart2, Download, Printer } from "lucide-react";
+import { BarChart2, Download, Printer, History, Loader2, Trash2 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PageHeader } from "@/components/ui-bits/PageHeader";
@@ -31,24 +31,54 @@ function ReportsPage() {
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
   const [data, setData] = useState<any>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [farm, setFarm] = useState<{ name: string; address?: string; phone?: string }>({ name: "16 Eyes Farm House" });
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    const { data: h } = await supabase.from("activity_log")
+      .select("*")
+      .eq("module", "REPORT_HISTORY")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    setHistory((h ?? []).map(item => ({ ...JSON.parse(item.detail), id: item.id, created_at: item.created_at })));
+    setLoadingHistory(false);
+  };
 
   useEffect(() => {
     supabase.from("settings").select("farmhouse_name, address, phone").maybeSingle()
       .then(({ data }) => data && setFarm({ name: data.farmhouse_name, address: data.address ?? undefined, phone: data.phone ?? undefined }));
+    loadHistory();
   }, []);
 
   const toggle = (id: string) => setSelected((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
 
-  const generate = async () => {
+  const generate = async (params?: { from: string; to: string; selected: string[] }) => {
+    const f = params?.from ?? from;
+    const t = params?.to ?? to;
+    const s = params?.selected ?? selected;
+
     let bq = supabase.from("bookings").select("*, slot:time_slots(name)").is("deleted_at", null);
     let iq = supabase.from("incomes").select("*, type:income_types(name)").is("deleted_at", null);
     let eq = supabase.from("expenses").select("*, type:expense_types(name)").is("deleted_at", null);
-    if (from) { bq = bq.gte("booking_date", from); iq = iq.gte("date", from); eq = eq.gte("date", from); }
-    if (to)   { bq = bq.lte("booking_date", to);   iq = iq.lte("date", to);   eq = eq.lte("date", to); }
+    
+    if (f) { bq = bq.gte("booking_date", f); iq = iq.gte("date", f); eq = eq.gte("date", f); }
+    if (t) { bq = bq.lte("booking_date", t); iq = iq.lte("date", t); eq = eq.lte("date", t); }
+    
     const [{ data: b }, { data: i }, { data: e }] = await Promise.all([bq, iq, eq]);
     setData({ bookings: b ?? [], incomes: i ?? [], expenses: e ?? [] });
-    await logActivity("Report Generated", "Reports", `Types: ${selected.join(", ")}`);
+
+    if (!params) {
+      await supabase.from("activity_log").insert({
+        module: "REPORT_HISTORY",
+        action: "GENERATE",
+        detail: JSON.stringify({ from: f, to: t, selected: s })
+      });
+      loadHistory();
+    }
+    
+    await logActivity("Report Generated", "Reports", `Types: ${s.join(", ")}`);
   };
 
   const downloadPDF = () => {
@@ -95,6 +125,18 @@ function ReportsPage() {
       }
     });
     doc.save(`16efh-report-${Date.now()}.pdf`);
+  };
+
+  const loadFromHistory = async (h: any, action: "view" | "print" | "download") => {
+    setFrom(h.from); setTo(h.to); setSelected(h.selected);
+    await generate({ from: h.from, to: h.to, selected: h.selected });
+    if (action === "print") setTimeout(() => window.print(), 500);
+    if (action === "download") setTimeout(() => downloadPDF(), 500);
+  };
+
+  const deleteHistory = async (id: string) => {
+    await supabase.from("activity_log").delete().eq("id", id);
+    loadHistory();
   };
 
   return (
@@ -173,6 +215,44 @@ function ReportsPage() {
           </tbody></table>
         </Section>
       )}
+
+      {/* History Section */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold flex items-center gap-2"><History className="h-4 w-4" /> Reports Generated History</h2>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Last 10 Reports</span>
+        </div>
+        
+        {loadingHistory ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-navy" /></div>
+        ) : history.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No history found.</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {history.map((h) => (
+              <div key={h.id} className="rounded-xl border border-border bg-card p-4 transition hover:shadow-md group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{formatDateTimeIST(h.created_at)}</span>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => deleteHistory(h.id)} className="p-1 text-danger hover:bg-danger/10 rounded"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                </div>
+                <div className="mt-1 text-xs font-medium">
+                  {h.selected.map((s: string) => TYPES.find(t => t.id === s)?.label).join(" • ")}
+                </div>
+                <div className="mt-1 text-[10px] text-muted-foreground">
+                  Period: {h.from ? formatDateIST(h.from) : "Start"} — {h.to ? formatDateIST(h.to) : "End"}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => loadFromHistory(h, "view")} className="flex-1 rounded-md border border-border bg-muted/50 py-1.5 text-[10px] font-bold uppercase tracking-tight hover:bg-gold hover:text-white transition">View</button>
+                  <button onClick={() => loadFromHistory(h, "print")} className="rounded-md border border-border p-1.5 hover:bg-muted"><Printer className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => loadFromHistory(h, "download")} className="rounded-md border border-border p-1.5 hover:bg-muted"><Download className="h-3.5 w-3.5" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

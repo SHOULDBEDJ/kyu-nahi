@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { DollarSign, Plus, Pencil, Trash2, Settings as SetIcon } from "lucide-react";
+import { DollarSign, Plus, Pencil, Trash2, Settings as SetIcon, List, LayoutGrid } from "lucide-react";
 import { PageHeader } from "@/components/ui-bits/PageHeader";
 import { StatCard } from "@/components/ui-bits/StatCard";
 import { EmptyState } from "@/components/ui-bits/EmptyState";
@@ -14,6 +14,9 @@ import { formatINR, formatDateIST, todayIST } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/income")({
   head: () => ({ meta: [{ title: "Income | 16 Eyes Farm House" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    new: search.new === true || search.new === "true",
+  }),
   component: IncomePage,
 });
 
@@ -38,7 +41,9 @@ function IncomePage() {
     ]);
     setRows((r ?? []) as any); setTypes((t ?? []) as any);
   };
+  const { new: autoAdd } = Route.useSearch();
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (autoAdd && types.length > 0) open(); }, [autoAdd, types]);
 
   const open = (i?: IncomeRow) => {
     setEditing(i ?? null);
@@ -72,11 +77,17 @@ function IncomePage() {
   };
 
   const total = rows.reduce((s, r) => s + Number(r.amount), 0);
+  const [view, setView] = useState<"table"|"cards">("table");
+  const filtered = rows; // Search logic can be added here if needed
 
   return (
     <div className="space-y-5">
       <PageHeader icon={DollarSign} title="Income" subtitle="Track other sources of income"
         action={<div className="flex gap-2">
+          <div className="flex rounded-md border border-input bg-card">
+            <button onClick={() => setView("table")} className={`px-3 py-2 ${view==="table"?"bg-gold text-white":""}`}><List size={14}/></button>
+            <button onClick={() => setView("cards")} className={`px-3 py-2 ${view==="cards"?"bg-gold text-white":""}`}><LayoutGrid size={14}/></button>
+          </div>
           <button onClick={() => setShowTypes(true)} className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm hover:bg-muted"><SetIcon size={14}/> Manage Types</button>
           <button onClick={() => open()} disabled={types.length === 0} className="inline-flex items-center gap-2 rounded-md bg-navy px-4 py-2.5 text-sm text-white hover:bg-navy-hover disabled:opacity-50"><Plus size={16}/> Add Income</button>
         </div>} />
@@ -92,7 +103,7 @@ function IncomePage() {
           action={types.length === 0
             ? <button onClick={() => setShowTypes(true)} className="rounded-md bg-navy px-4 py-2 text-sm text-white">Manage Types</button>
             : <button onClick={() => open()} className="inline-flex items-center gap-2 rounded-md bg-navy px-4 py-2 text-sm text-white"><Plus size={14}/> Add Income</button>} />
-      ) : (
+      ) : view === "table" ? (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full min-w-[700px]">
             <thead><tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -114,6 +125,25 @@ function IncomePage() {
             </tbody>
             <tfoot><tr className="bg-background"><td colSpan={2} className="px-4 py-3 text-right text-sm font-semibold">Total</td><td className="px-4 py-3 text-right text-sm font-bold text-success">{formatINR(total)}</td><td colSpan={4}/></tr></tfoot>
           </table>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {rows.map((i) => (
+            <div key={i.id} className="rounded-xl border border-border bg-card p-4 transition hover:shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{formatDateIST(i.date)}</span>
+                <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">{i.type?.name}</span>
+              </div>
+              <div className="mt-2 text-lg font-bold text-success">{formatINR(i.amount)}</div>
+              <div className="mt-1 text-sm font-medium">{i.payment_mode}</div>
+              {i.reference && <div className="text-xs text-muted-foreground">Ref: {i.reference}</div>}
+              {i.description && <p className="mt-2 text-xs line-clamp-2 text-muted-foreground italic">"{i.description}"</p>}
+              <div className="mt-4 flex gap-2 border-t border-border pt-3">
+                <button onClick={() => open(i)} className="flex-1 rounded-md border border-border py-1.5 text-xs font-medium hover:bg-muted">Edit</button>
+                <button onClick={() => setDelTarget(i)} className="flex-1 rounded-md border border-danger/20 py-1.5 text-xs font-medium text-danger hover:bg-danger hover:text-white transition">Delete</button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -159,12 +189,41 @@ export function TypeManager({ open, onClose, table, usageTable, types, reload }:
     setEditId(null); reload();
   };
   const del = async (t: TypeRow) => {
-    const { count } = await supabase.from(usageTable).select("*", { count: "exact", head: true }).eq("type_id", t.id).is("deleted_at", null);
-    if ((count ?? 0) > 0) return toast.error("Cannot delete: type has existing records");
-    const { error } = await supabase.from(table).delete().eq("id", t.id);
-    if (error) return toast.error(error.message);
-    await logActivity("Type Deleted", table === "income_types" ? "Income" : "Expenses", `Type "${t.name}"`);
-    reload();
+    try {
+      // 1. Check if category is in use
+      const { data: usage } = await supabase.from(usageTable)
+        .select("id")
+        .eq("type_id", t.id)
+        .is("deleted_at", null)
+        .limit(1);
+
+      if (usage && usage.length > 0) {
+        const confirm = window.confirm(`This category is used in your records. To delete it, we will move those records to "Other". Continue?`);
+        if (!confirm) return;
+
+        // 2. Ensure "Other" category exists
+        let { data: otherType } = await supabase.from(table).select("id").eq("name", "Other").maybeSingle();
+        if (!otherType) {
+          const { data: newOther, error: createErr } = await supabase.from(table).insert({ name: "Other" }).select("id").single();
+          if (createErr) throw createErr;
+          otherType = newOther;
+        }
+
+        // 3. Reassign ALL records to "Other" (including soft-deleted ones)
+        const { error: moveErr } = await supabase.from(usageTable).update({ type_id: otherType.id }).eq("type_id", t.id);
+        if (moveErr) throw moveErr;
+      }
+
+      // 4. Finally delete the category
+      const { error } = await supabase.from(table).delete().eq("id", t.id);
+      if (error) throw error;
+
+      await logActivity("Type Deleted", table === "income_types" ? "Income" : "Expenses", `Removed "${t.name}"`);
+      toast.success("Category removed and records updated");
+      reload();
+    } catch (e: any) {
+      toast.error("Cleanup failed: " + e.message);
+    }
   };
 
   return (

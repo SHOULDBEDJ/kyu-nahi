@@ -18,7 +18,7 @@ function Guard() {
 
   // Role-based route gate
   useEffect(() => {
-    if (!user) return;
+    if (!user || typeof window === 'undefined') return;
     const path = window.location.pathname;
     if (!canAccess(user.role, path)) {
       toast.error("You don't have permission to access that page.");

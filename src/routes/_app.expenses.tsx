@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Receipt, Plus, Pencil, Trash2, Settings as SetIcon } from "lucide-react";
+import { Receipt, Plus, Pencil, Trash2, Settings as SetIcon, List, LayoutGrid } from "lucide-react";
 import { PageHeader } from "@/components/ui-bits/PageHeader";
 import { StatCard } from "@/components/ui-bits/StatCard";
 import { EmptyState } from "@/components/ui-bits/EmptyState";
@@ -15,6 +15,9 @@ import { formatINR, formatDateIST, todayIST } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/expenses")({
   head: () => ({ meta: [{ title: "Expenses | 16 Eyes Farm House" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    new: search.new === true || search.new === "true",
+  }),
   component: ExpensesPage,
 });
 
@@ -38,7 +41,9 @@ function ExpensesPage() {
     ]);
     setRows((r ?? []) as any); setTypes((t ?? []) as any);
   };
+  const { new: autoAdd } = Route.useSearch();
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (autoAdd && types.length > 0) open(); }, [autoAdd, types]);
 
   const open = (i?: ExpRow) => {
     setEditing(i ?? null);
@@ -72,11 +77,20 @@ function ExpensesPage() {
   };
 
   const total = rows.reduce((s, r) => s + Number(r.amount), 0);
+  const [view, setView] = useState<"table"|"cards">("table");
+  const filtered = rows;
 
   return (
     <div className="space-y-5">
       <PageHeader icon={Receipt} title="Expenses" subtitle="Track operational expenses"
-        action={<div className="flex gap-2"><button onClick={() => setShowTypes(true)} className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm"><SetIcon size={14}/> Manage Types</button><button onClick={() => open()} disabled={types.length===0} className="inline-flex items-center gap-2 rounded-md bg-navy px-4 py-2.5 text-sm text-white hover:bg-navy-hover disabled:opacity-50"><Plus size={16}/> Add Expense</button></div>} />
+        action={<div className="flex gap-2">
+          <div className="flex rounded-md border border-input bg-card">
+            <button onClick={() => setView("table")} className={`px-3 py-2 ${view==="table"?"bg-gold text-white":""}`}><List size={14}/></button>
+            <button onClick={() => setView("cards")} className={`px-3 py-2 ${view==="cards"?"bg-gold text-white":""}`}><LayoutGrid size={14}/></button>
+          </div>
+          <button onClick={() => setShowTypes(true)} className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm"><SetIcon size={14}/> Manage Types</button>
+          <button onClick={() => open()} disabled={types.length===0} className="inline-flex items-center gap-2 rounded-md bg-navy px-4 py-2.5 text-sm text-white hover:bg-navy-hover disabled:opacity-50"><Plus size={16}/> Add Expense</button>
+        </div>} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard icon={Receipt} label="Total Expenses" value={formatINR(total)} tone="danger" />
@@ -87,7 +101,7 @@ function ExpensesPage() {
       {rows.length === 0 ? (
         <EmptyState icon={Receipt} title="No expenses recorded" subtitle="Add your first expense to start tracking."
           action={<button onClick={() => open()} className="inline-flex items-center gap-2 rounded-md bg-navy px-4 py-2 text-sm text-white"><Plus size={14}/> Add Expense</button>} />
-      ) : (
+      ) : view === "table" ? (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full min-w-[700px]">
             <thead><tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -109,6 +123,28 @@ function ExpensesPage() {
             </tbody>
             <tfoot><tr className="bg-background"><td colSpan={2} className="px-4 py-3 text-right text-sm font-semibold">Total</td><td className="px-4 py-3 text-right text-sm font-bold text-danger">{formatINR(total)}</td><td colSpan={4}/></tr></tfoot>
           </table>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {rows.map((e) => (
+            <div key={e.id} className="rounded-xl border border-border bg-card p-4 transition hover:shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{formatDateIST(e.date)}</span>
+                <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning-fg">{e.type?.name}</span>
+              </div>
+              <div className="mt-2 text-lg font-bold text-danger">{formatINR(e.amount)}</div>
+              <div className="mt-1 text-sm font-medium">{e.payment_mode}</div>
+              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                {e.vendor && <span>By: {e.vendor}</span>}
+                {e.reference && <span>• Ref: {e.reference}</span>}
+              </div>
+              {e.description && <p className="mt-2 text-xs line-clamp-2 text-muted-foreground italic">"{e.description}"</p>}
+              <div className="mt-4 flex gap-2 border-t border-border pt-3">
+                <button onClick={() => open(e)} className="flex-1 rounded-md border border-border py-1.5 text-xs font-medium hover:bg-muted">Edit</button>
+                <button onClick={() => setDelTarget(e)} className="flex-1 rounded-md border border-danger/20 py-1.5 text-xs font-medium text-danger hover:bg-danger hover:text-white transition">Delete</button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

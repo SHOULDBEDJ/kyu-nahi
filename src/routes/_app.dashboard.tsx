@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LayoutGrid, Calendar, IndianRupee, AlertCircle, Plus, ArrowRight, CalendarDays, Receipt, BarChart2 } from "lucide-react";
+import { LayoutGrid, Calendar, IndianRupee, AlertCircle, Plus, ArrowRight, CalendarDays, Receipt, BarChart2, Users } from "lucide-react";
 import { PageHeader } from "@/components/ui-bits/PageHeader";
 import { StatCard } from "@/components/ui-bits/StatCard";
 import { StatusBadge } from "@/components/ui-bits/Badge";
@@ -72,10 +72,10 @@ function Dashboard() {
           { to: "/bookings", label: "Add Booking", icon: Plus },
           { to: "/income",   label: "Add Income",  icon: IndianRupee },
           { to: "/expenses", label: "Add Expense", icon: Receipt },
-          { to: "/bookings", label: "Calendar",    icon: CalendarDays },
+          { to: "/users",    label: "Add User",    icon: Users },
           { to: "/reports",  label: "Report",      icon: BarChart2 },
         ].map((a) => (
-          <Link key={a.label} to={a.to} className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium hover:border-navy hover:text-navy">
+          <Link key={a.label} to={a.to} search={{ new: true }} className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium hover:border-navy hover:text-navy">
             <a.icon size={16} /> {a.label}
           </Link>
         ))}

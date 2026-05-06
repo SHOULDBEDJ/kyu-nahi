@@ -14,8 +14,10 @@ export function AppShell() {
   return (
     <div className="flex min-h-screen w-full bg-background">
       {/* Desktop sidebar */}
-      <div className="hidden md:block">
-        <Sidebar />
+      <div className="hidden md:block w-60 flex-shrink-0">
+        <div className="fixed top-0 left-0 z-[100] h-screen w-60 border-r border-border">
+          <Sidebar />
+        </div>
       </div>
 
       {/* Mobile drawer */}

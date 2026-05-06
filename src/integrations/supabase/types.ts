@@ -47,6 +47,41 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_history: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          filename: string
+          id: string
+          size: number
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          filename: string
+          id?: string
+          size: number
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          filename?: string
+          id?: string
+          size?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_history_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           advance_paid: number
@@ -313,6 +348,26 @@ export type Database = {
           phone: string | null
           tax_percent: number | null
           updated_at: string
+          tagline: string | null
+          owner_name: string | null
+          alternate_phone: string | null
+          website_url: string | null
+          maps_link: string | null
+          dark_logo_url: string | null
+          favicon_url: string | null
+          watermark_url: string | null
+          login_bg_url: string | null
+          min_advance_percent: number | null
+          allow_partial_payment: boolean | null
+          enable_discounts: boolean | null
+          max_guests: number | null
+          whatsapp_template_booking: string | null
+          whatsapp_template_payment: string | null
+          whatsapp_template_cancel: string | null
+          currency_symbol: string | null
+          currency_position: string | null
+          financial_year_start: string | null
+          accent_color: string | null
         }
         Insert: {
           address?: string | null

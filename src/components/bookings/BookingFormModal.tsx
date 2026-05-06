@@ -91,15 +91,50 @@ export function BookingFormModal({
     onSaved(); onClose();
   };
 
+  const handleSaveDraft = async () => {
+    const vals = watch();
+    setSavingDraft(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const payload = {
+        module: "BOOKING_DRAFT",
+        action: "SAVE",
+        detail: JSON.stringify({ ...vals, id: initial?.id }),
+        user_id: u.user?.id
+      };
+      
+      const { error } = await supabase.from("activity_log").insert(payload);
+      if (error) throw error;
+      
+      toast.success("Booking saved as draft");
+      onClose();
+    } catch (error: any) {
+      toast.error("Failed to save draft: " + error.message);
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const [savingDraft, setSavingDraft] = useState(false);
+
   return (
     <Modal open={open} onClose={onClose} title={initial?.id ? "Edit Booking" : "Add Booking"} size="lg"
       footer={
-        <>
-          <button onClick={onClose} type="button" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-muted">Cancel</button>
-          <button form="booking-form" type="submit" disabled={isSubmitting} className="rounded-md bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-hover disabled:opacity-50">
-            {isSubmitting ? "Saving…" : "Save Booking"}
-          </button>
-        </>
+        <div className="flex w-full items-center justify-between">
+          <div className="flex gap-2">
+            {!initial?.id && (
+              <button onClick={handleSaveDraft} disabled={isSubmitting || savingDraft} type="button" className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50">
+                {savingDraft ? "Saving Draft..." : "Save as Draft"}
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={onClose} type="button" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-muted">Cancel</button>
+            <button form="booking-form" type="submit" disabled={isSubmitting || savingDraft} className="rounded-md bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-hover disabled:opacity-50">
+              {isSubmitting ? "Saving…" : "Save Booking"}
+            </button>
+          </div>
+        </div>
       }>
       <form id="booking-form" onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Booking Date *" error={errors.booking_date?.message}>

@@ -38,13 +38,26 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
           <span className="text-white/45">›</span>
           <span className="font-medium text-white">{current}</span>
         </div>
-        <div className="text-sm font-bold sm:hidden">16 EYES</div>
+        <div className="sm:hidden flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold font-bold text-navy overflow-hidden">
+            {user?.avatarUrl ? (
+              <img key={user.avatarUrl} src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              "16"
+            )}
+          </div>
+          <span className="text-sm font-bold">16 EYES</span>
+        </div>
       </div>
 
       <div ref={ref} className="relative">
         <button onClick={() => setOpen((s) => !s)} className="flex items-center gap-2.5 rounded-md px-2 py-1 hover:bg-white/10">
-          <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold text-white ${user ? avatarColor(user.username) : "bg-gold"}`}>
-            {user ? initials(user.fullName) : "?"}
+          <div className={`flex h-9 w-9 overflow-hidden items-center justify-center rounded-full text-sm font-semibold text-white ${user ? (user.avatarUrl ? "" : avatarColor(user.username)) : "bg-gold"}`}>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              user ? initials(user.fullName) : "?"
+            )}
           </div>
           <div className="hidden text-left leading-tight sm:block">
             <div className="text-sm font-medium">{user?.fullName ?? "Guest"}</div>

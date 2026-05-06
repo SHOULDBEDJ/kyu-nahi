@@ -25,11 +25,24 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [confirm, setConfirm] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   return (
     <aside data-sidebar className="flex h-full w-60 flex-col bg-navy text-white">
       <div className="flex items-center gap-3 px-5 py-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold font-bold text-navy">16</div>
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold font-bold text-navy overflow-hidden shadow-inner ring-2 ring-white/10">
+          {user?.avatarUrl && !imgError ? (
+            <img 
+              key={user.avatarUrl}
+              src={user.avatarUrl} 
+              alt="" 
+              className="h-full w-full object-cover"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            "16"
+          )}
+        </div>
         <div className="leading-tight">
           <div className="text-[11px] uppercase tracking-wider text-white/60">The</div>
           <div className="text-sm font-bold">16 EYES Farm House</div>
@@ -58,7 +71,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="border-t border-white/10 px-3 py-3">
         {user && (
           <div className="mb-2 flex items-center gap-3 px-2">
-            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white ${avatarColor(user.username)}`}>
+            <div className={`flex h-8 w-8 items-center justify-center rounded-full overflow-hidden text-xs font-semibold text-white ${user.avatarUrl ? "" : avatarColor(user.username)}`}>
               {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full rounded-full object-cover" /> : initials(user.fullName)}
             </div>
             <div className="min-w-0 flex-1 leading-tight">

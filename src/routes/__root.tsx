@@ -1,6 +1,7 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth";
+import { SettingsProvider } from "@/lib/settings-context";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -29,7 +30,7 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootShell,
-  component: () => <AuthProvider><Outlet /></AuthProvider>,
+  component: () => <SettingsProvider><AuthProvider><Outlet /></AuthProvider></SettingsProvider>,
   notFoundComponent: () => (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="text-center">

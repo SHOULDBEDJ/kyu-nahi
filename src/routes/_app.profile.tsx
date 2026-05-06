@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { User as UserIcon } from "lucide-react";
+import { User as UserIcon, Camera, Eye, EyeOff, Loader2, Save, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/ui-bits/PageHeader";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/db";
 import { initials, avatarColor, passwordStrength, formatMonthYear } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_app/profile")({
   head: () => ({ meta: [{ title: "Profile | 16 Eyes Farm House" }] }),
@@ -16,73 +19,277 @@ export const Route = createFileRoute("/_app/profile")({
 function ProfilePage() {
   const { user, refresh, logout } = useAuth();
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [memberSince, setMemberSince] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
-      setFullName(user.fullName); setEmail(user.email ?? "");
-      supabase.from("profiles").select("created_at").eq("id", user.id).maybeSingle()
-        .then(({ data }) => data && setMemberSince(formatMonthYear(data.created_at)));
+      setFullName(user.fullName); 
+      setUsername(user.username);
+      
+      if (user.isVaultUser) {
+        supabase.from("activity_log")
+          .select("created_at")
+          .eq("module", "INTERNAL_AUTH")
+          .eq("action", "USER_DATA")
+          .like("detail", `%${user.id}%`)
+          .maybeSingle()
+          .then(({ data }) => data && setMemberSince(formatMonthYear(data.created_at)));
+      } else {
+        supabase.from("profiles").select("created_at").eq("id", user.id).maybeSingle()
+          .then(({ data }) => data && setMemberSince(formatMonthYear(data.created_at)));
+      }
     }
   }, [user]);
 
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      if (user.isVaultUser) {
+        // Update vault user in activity_log
+        const { data: log } = await supabase.from("activity_log")
+          .select("id, detail")
+          .eq("module", "INTERNAL_AUTH")
+          .eq("action", "USER_DATA")
+          .like("detail", `%${user.id}%`)
+          .maybeSingle();
+
+        if (log) {
+          const detail = JSON.parse(log.detail);
+          detail.avatarUrl = publicUrl;
+          const { error: updateError } = await supabase.from("activity_log")
+            .update({ detail: JSON.stringify(detail) })
+            .eq("id", log.id);
+          if (updateError) throw updateError;
+        }
+      } else {
+        // Update standard user in profiles
+        const { error: updateError } = await supabase.from("profiles")
+          .update({ avatar_url: publicUrl })
+          .eq("id", user.id);
+        if (updateError) throw updateError;
+      }
+
+      await refresh();
+      toast.success("Profile picture updated successfully");
+    } catch (error: any) {
+      toast.error("Upload failed: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const saveAccount = async () => {
     if (!user) return;
-    const { error } = await supabase.from("profiles").update({ full_name: fullName, email }).eq("id", user.id);
-    if (error) return toast.error(error.message);
-    await logActivity("Edit", "Profile", "Updated account details");
-    await refresh(); toast.success("Profile updated");
+    setSaving(true);
+    try {
+      if (user.isVaultUser) {
+        const { data: log } = await supabase.from("activity_log")
+          .select("id, detail")
+          .eq("module", "INTERNAL_AUTH")
+          .eq("action", "USER_DATA")
+          .like("detail", `%${user.id}%`)
+          .maybeSingle();
+
+        if (log) {
+          const detail = JSON.parse(log.detail);
+          detail.fullName = fullName;
+          detail.username = username;
+          const { error } = await supabase.from("activity_log")
+            .update({ detail: JSON.stringify(detail) })
+            .eq("id", log.id);
+          if (error) throw error;
+        }
+      } else {
+        const { error } = await supabase.from("profiles").update({ 
+          full_name: fullName, 
+          username 
+        }).eq("id", user.id);
+        if (error) throw error;
+      }
+      
+      await logActivity("Edit", "Profile", "Updated account details");
+      await refresh(); 
+      toast.success("Profile updated successfully");
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updatePassword = async () => {
-    if (pw.length < 8) return toast.error("Password too short");
-    const { error } = await supabase.auth.updateUser({ password: pw });
-    if (error) return toast.error(error.message);
-    await logActivity("Password Change", "Profile", "Password updated");
-    toast.success("Password updated. Logging out…");
-    setTimeout(async () => { await logout(); window.location.href = "/login"; }, 1500);
+    if (pw.length < 8) return toast.error("Password must be at least 8 characters");
+    setSaving(true);
+    try {
+      if (user.isVaultUser) {
+        const { data: log } = await supabase.from("activity_log")
+          .select("id, detail")
+          .eq("module", "INTERNAL_AUTH")
+          .eq("action", "USER_DATA")
+          .like("detail", `%${user.id}%`)
+          .maybeSingle();
+
+        if (log) {
+          const detail = JSON.parse(log.detail);
+          detail.password = pw;
+          const { error } = await supabase.from("activity_log")
+            .update({ detail: JSON.stringify(detail) })
+            .eq("id", log.id);
+          if (error) throw error;
+        }
+      } else {
+        const { error } = await supabase.auth.updateUser({ password: pw });
+        if (error) throw error;
+      }
+      
+      await logActivity("Password Change", "Profile", "Password updated");
+      toast.success("Password updated successfully. Logging out...");
+      setTimeout(async () => { await logout(); window.location.href = "/login"; }, 1500);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!user) return null;
   const strength = passwordStrength(pw);
 
   return (
-    <div className="space-y-5">
-      <PageHeader icon={UserIcon} title="Profile" subtitle="Manage your account" />
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="mb-4 flex flex-col items-center">
-            <div className={`flex h-24 w-24 items-center justify-center rounded-full text-2xl font-bold text-white ${avatarColor(user.username)}`}>{initials(user.fullName)}</div>
-            <span className="mt-2 rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold text-gold">{user.role}</span>
-            {memberSince && <p className="mt-1 text-xs text-muted-foreground">Member since {memberSince}</p>}
-          </div>
-          <div className="space-y-3">
-            <Field label="Full Name"><input value={fullName} onChange={(e) => setFullName(e.target.value)} className={inp}/></Field>
-            <Field label="Username"><input value={user.username} disabled className={inp + " opacity-60"}/></Field>
-            <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} className={inp}/></Field>
-            <button onClick={saveAccount} className="w-full rounded-md bg-navy px-4 py-2.5 text-sm text-white hover:bg-navy-hover">Save Changes</button>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <PageHeader icon={UserIcon} title="My Profile" subtitle="Update your identity and account security" />
+      
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Profile Card */}
+        <div className="lg:col-span-1">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex flex-col items-center text-center">
+              <div className="relative group">
+                <div className={`h-32 w-32 overflow-hidden rounded-full border-4 border-background ring-2 ring-gold/20 shadow-xl transition-all ${!user.avatarUrl ? avatarColor(user.username) : ""}`}>
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={user.fullName} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-4xl font-bold text-white">
+                      {initials(user.fullName)}
+                    </div>
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                      <Loader2 className="h-8 w-8 animate-spin text-white" />
+                    </div>
+                  )}
+                </div>
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-navy text-white shadow-lg transition-transform hover:scale-110 active:scale-95"
+                  title="Change profile picture"
+                >
+                  <Camera size={18} />
+                </button>
+                <input type="file" ref={fileInputRef} onChange={onFileChange} accept="image/*" className="hidden" />
+              </div>
+
+              <div className="mt-4">
+                <h2 className="text-xl font-bold text-navy">{user.fullName}</h2>
+                <div className="mt-1">
+                  <span className="rounded-full bg-gold/10 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold border border-gold/20">
+                    {user.role}
+                  </span>
+                </div>
+                {memberSince && <p className="mt-2 text-xs text-muted-foreground italic">Member since {memberSince}</p>}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6">
-          <h3 className="mb-4 text-sm font-semibold">Change Password</h3>
-          <div className="space-y-3">
-            <Field label="New Password"><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} className={inp}/></Field>
-            {pw && (<>
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className={`h-full ${strength.color}`} style={{ width: `${strength.pct}%` }}/></div>
-              <div className="text-xs text-muted-foreground">Strength: {strength.label}</div>
-            </>)}
-            <button onClick={updatePassword} disabled={pw.length < 8} className="w-full rounded-md bg-navy px-4 py-2.5 text-sm text-white disabled:opacity-50">Update Password</button>
+        {/* Edit Details */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-navy uppercase tracking-wider">
+              <UserIcon size={16} className="text-gold" /> Personal Information
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Full Name</Label>
+                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your Display Name" />
+              </div>
+              <div className="space-y-2">
+                <Label>Username</Label>
+                <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Login ID" />
+              </div>
+            </div>
+            <div className="mt-6">
+              <Button onClick={saveAccount} className="w-full bg-navy hover:bg-navy-hover" disabled={saving}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save Profile Changes
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm border-gold/20">
+            <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-navy uppercase tracking-wider">
+              <KeyRound size={16} className="text-gold" /> Security & Password
+            </h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>New Password</Label>
+                <div className="relative">
+                  <Input 
+                    type={showPw ? "text" : "password"} 
+                    value={pw} 
+                    onChange={(e) => setPw(e.target.value)} 
+                    placeholder="Min. 8 characters"
+                    className="pr-10"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPw(!showPw)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-navy"
+                  >
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {pw && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="h-1 overflow-hidden rounded-full bg-muted">
+                      <div className={`h-full transition-all duration-500 ${strength.color}`} style={{ width: `${strength.pct}%` }} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Password Strength: <span className="font-bold">{strength.label}</span></p>
+                  </div>
+                )}
+              </div>
+              <Button onClick={updatePassword} disabled={pw.length < 8 || saving} className="w-full bg-gold hover:bg-gold-hover text-navy font-bold">
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}
+                Update Account Password
+              </Button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-const inp = "w-full rounded-md border border-input bg-muted px-3 py-2 text-base outline-none focus:border-navy";
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block"><span className="mb-1 block text-xs font-medium">{label}</span>{children}</label>;
 }
