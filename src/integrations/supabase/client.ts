@@ -4,9 +4,13 @@ import type { Database } from "./types";
 
 function createSupabaseClient() {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://icjeiuuqvysjakhubcgaw.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  if (!SUPABASE_KEY) {
+    console.error("Missing Supabase API Key in .env");
+  }
+
+  return createClient<Database>(SUPABASE_URL, SUPABASE_KEY || "", {
     auth: {
       storage: typeof window !== "undefined" ? localStorage : undefined,
       persistSession: true,
