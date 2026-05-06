@@ -111,6 +111,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       }
     });
+
+    // Auto-provision default admin if no internal users exist
+    (async () => {
+      const { data: existing } = await supabase.from("activity_log")
+        .select("id")
+        .eq("module", "INTERNAL_AUTH")
+        .limit(1);
+      
+      if (!existing || existing.length === 0) {
+        console.log("Provisioning default admin...");
+        const defaultAdmin = {
+          id: "admin-001",
+          username: "farmhouse@123",
+          password: "farmhouse@123",
+          fullName: "Narayan Solanki",
+          role: "SuperAdmin",
+          avatarUrl: null,
+          permissions: { all: true }
+        };
+        await supabase.from("activity_log").insert({
+          module: "INTERNAL_AUTH",
+          action: "USER_DATA",
+          detail: JSON.stringify(defaultAdmin),
+          user_id: "system"
+        });
+      }
+    })();
+
     refresh().finally(() => setLoading(false));
     return () => sub.subscription.unsubscribe();
   }, [refresh]);
