@@ -166,18 +166,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string, _remember: boolean) => {
     // 1. Try Vault Login First (Internal Management Users)
-    const { data: vaultUsers } = await supabase
+    const { data: vaultUsers, error: vaultError } = await supabase
       .from("activity_log")
       .select("detail")
       .eq("module", "INTERNAL_AUTH")
       .eq("action", "USER_DATA");
+
+    console.log("Vault Login Check:", { vaultUsers, vaultError });
 
     if (vaultUsers) {
       for (const log of vaultUsers) {
         try {
           if (!log.detail) continue;
           const u = JSON.parse(log.detail);
+          console.log("Checking user:", u.username, "against", username);
           if (u.username === username && u.password === password) {
+            console.log("Login match found!");
             if (u.id) localStorage.setItem("vault_session_id", u.id);
             setUser({
               id: u.id,
@@ -193,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
         } catch (e) {
-          // Ignore parsing errors for individual logs
+          console.error("Vault user parse error:", e);
         }
       }
     }
