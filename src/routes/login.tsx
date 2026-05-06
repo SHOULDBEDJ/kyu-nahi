@@ -113,8 +113,8 @@ function LoginPage() {
           </button>
 
           <p className="text-center text-[11px] text-muted-foreground">
-            Default: <code className="rounded bg-muted px-1.5 py-0.5">farmhouse@123</code> /{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5">farmhouse@123</code>
+            Default: <code className="rounded bg-muted px-1.5 py-0.5">narayansolanke</code> /{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5">narayansolanke</code>
           </p>
         </form>
       </div>
