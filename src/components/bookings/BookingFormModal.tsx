@@ -24,6 +24,7 @@ interface FormValues {
 
 export interface BookingFormData extends FormValues {
   id?: string;
+  log_id?: string;
 }
 
 export function BookingFormModal({
@@ -144,6 +145,12 @@ export function BookingFormModal({
       await logActivity("Create", "Bookings", `Created booking ${data?.order_id}`);
       toast.success(`Booking ${data?.order_id} created`);
     }
+
+    // Cleanup draft if it was one
+    if (initial?.log_id) {
+      await supabase.from("activity_log").delete().eq("id", initial.log_id);
+    }
+
     onSaved();
     onClose();
   };
@@ -153,17 +160,29 @@ export function BookingFormModal({
     setSavingDraft(true);
     try {
       const { data: u } = await supabase.auth.getUser();
-      const payload = {
+      const payload: any = {
         module: "BOOKING_DRAFT",
         action: "SAVE",
-        detail: JSON.stringify({ ...vals, id: initial?.id }),
+        detail: JSON.stringify({ ...vals, id: initial?.id, log_id: initial?.log_id }),
         user_id: u.user?.id,
       };
 
-      const { error } = await supabase.from("activity_log").insert(payload);
+      let error;
+      if (initial?.log_id) {
+        const { error: err } = await supabase
+          .from("activity_log")
+          .update(payload)
+          .eq("id", initial.log_id);
+        error = err;
+      } else {
+        const { error: err } = await supabase.from("activity_log").insert(payload);
+        error = err;
+      }
+
       if (error) throw error;
 
       toast.success("Booking saved as draft");
+      onSaved();
       onClose();
     } catch (error: any) {
       toast.error("Failed to save draft: " + error.message);

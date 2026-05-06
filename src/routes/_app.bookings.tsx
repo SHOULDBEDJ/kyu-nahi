@@ -147,19 +147,28 @@ function BookingsPage() {
   };
 
   const doDelete = async () => {
-    if (!deleting) return;
-    await supabase
-      .from("bookings")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", deleting.id);
-    await logActivity("Delete", "Bookings", `Deleted booking ${deleting.order_id}`);
-    toast.success("Booking deleted");
-    setDeleting(null);
-    load();
+    if (!deleting || deletingInProgress) return;
+    setDeletingInProgress(true);
+    try {
+      await supabase
+        .from("bookings")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", deleting.id);
+      await logActivity("Delete", "Bookings", `Deleted booking ${deleting.order_id}`);
+      toast.success("Booking deleted");
+      setDeleting(null);
+      load();
+    } catch (error: any) {
+      toast.error("Failed to delete: " + error.message);
+    } finally {
+      setDeletingInProgress(false);
+    }
   };
 
+  const [deletingInProgress, setDeletingInProgress] = useState(false);
   const doDeleteDraft = async () => {
-    if (!deletingDraft) return;
+    if (!deletingDraft || deletingInProgress) return;
+    setDeletingInProgress(true);
     try {
       const { error } = await supabase.from("activity_log").delete().eq("id", deletingDraft.log_id);
       if (error) throw error;
@@ -169,6 +178,8 @@ function BookingsPage() {
     } catch (error: any) {
       console.error("Delete draft error:", error);
       toast.error("Failed to delete draft: " + error.message);
+    } finally {
+      setDeletingInProgress(false);
     }
   };
 
@@ -589,6 +600,7 @@ function BookingsPage() {
         body="This action cannot be undone."
         confirmLabel="Delete"
         danger
+        loading={deletingInProgress}
         onCancel={() => setDeleting(null)}
         onConfirm={doDelete}
       />
@@ -598,6 +610,7 @@ function BookingsPage() {
         body="This action cannot be undone."
         confirmLabel="Delete"
         danger
+        loading={deletingInProgress}
         onCancel={() => setDeletingDraft(null)}
         onConfirm={doDeleteDraft}
       />
