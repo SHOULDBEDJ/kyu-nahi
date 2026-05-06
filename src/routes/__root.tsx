@@ -2,16 +2,19 @@ import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-r
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth";
 import { SettingsProvider } from "@/lib/settings-context";
+import { LaunchScreen } from "@/components/layout/LaunchScreen";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" },
       { title: "16 Eyes Farm House — Management System" },
       { name: "description", content: "Bookings, income, expenses & operations for 16 Eyes Farm House." },
       { name: "theme-color", content: "#1a237e" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { property: "og:title", content: "16 Eyes Farm House — Management System" },
       { name: "twitter:title", content: "16 Eyes Farm House — Management System" },
       { property: "og:description", content: "Bookings, income, expenses & operations for 16 Eyes Farm House." },
@@ -24,13 +27,14 @@ export const Route = createRootRoute({
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" },
     ],
   }),
   shellComponent: RootShell,
-  component: () => <SettingsProvider><AuthProvider><Outlet /></AuthProvider></SettingsProvider>,
+  component: () => <SettingsProvider><AuthProvider><LaunchScreen><Outlet /></LaunchScreen></AuthProvider></SettingsProvider>,
   notFoundComponent: () => (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="text-center">

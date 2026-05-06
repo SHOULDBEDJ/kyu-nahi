@@ -25,14 +25,14 @@ function ProfilePage() {
   const [memberSince, setMemberSince] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
-      setFullName(user.fullName); 
+      setFullName(user.fullName);
       setUsername(user.username);
-      
+
       if (user.isVaultUser) {
         supabase.from("activity_log")
           .select("created_at")
@@ -124,15 +124,15 @@ function ProfilePage() {
           if (error) throw error;
         }
       } else {
-        const { error } = await supabase.from("profiles").update({ 
-          full_name: fullName, 
-          username 
+        const { error } = await supabase.from("profiles").update({
+          full_name: fullName,
+          username
         }).eq("id", user.id);
         if (error) throw error;
       }
-      
+
       await logActivity("Edit", "Profile", "Updated account details");
-      await refresh(); 
+      await refresh();
       toast.success("Profile updated successfully");
     } catch (error: any) {
       toast.error(error.message);
@@ -165,7 +165,7 @@ function ProfilePage() {
         const { error } = await supabase.auth.updateUser({ password: pw });
         if (error) throw error;
       }
-      
+
       await logActivity("Password Change", "Profile", "Password updated");
       toast.success("Password updated successfully. Logging out...");
       setTimeout(async () => { await logout(); window.location.href = "/login"; }, 1500);
@@ -182,7 +182,7 @@ function ProfilePage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader icon={UserIcon} title="My Profile" subtitle="Update your identity and account security" />
-      
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Profile Card */}
         <div className="lg:col-span-1">
@@ -203,7 +203,7 @@ function ProfilePage() {
                     </div>
                   )}
                 </div>
-                <button 
+                <button
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-navy text-white shadow-lg transition-transform hover:scale-110 active:scale-95"
                   title="Change profile picture"
@@ -258,14 +258,14 @@ function ProfilePage() {
               <div className="space-y-2">
                 <Label>New Password</Label>
                 <div className="relative">
-                  <Input 
-                    type={showPw ? "text" : "password"} 
-                    value={pw} 
-                    onChange={(e) => setPw(e.target.value)} 
+                  <Input
+                    type={showPw ? "text" : "password"}
+                    value={pw}
+                    onChange={(e) => setPw(e.target.value)}
                     placeholder="Min. 8 characters"
                     className="pr-10"
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowPw(!showPw)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-navy"
