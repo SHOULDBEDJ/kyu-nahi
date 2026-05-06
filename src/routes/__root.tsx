@@ -19,7 +19,7 @@ export const Route = createRootRoute({
         content: "Bookings, income, expenses & operations for 16 Eyes Farm House.",
       },
       { name: "theme-color", content: "#1a237e" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { property: "og:title", content: "16 Eyes Farm House — Management System" },
       { name: "twitter:title", content: "16 Eyes Farm House — Management System" },
