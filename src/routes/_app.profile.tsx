@@ -34,7 +34,8 @@ function ProfilePage() {
       setUsername(user.username);
 
       if (user.isVaultUser) {
-        supabase.from("activity_log")
+        supabase
+          .from("activity_log")
           .select("created_at")
           .eq("module", "INTERNAL_AUTH")
           .eq("action", "USER_DATA")
@@ -42,7 +43,11 @@ function ProfilePage() {
           .maybeSingle()
           .then(({ data }) => data && setMemberSince(formatMonthYear(data.created_at)));
       } else {
-        supabase.from("profiles").select("created_at").eq("id", user.id).maybeSingle()
+        supabase
+          .from("profiles")
+          .select("created_at")
+          .eq("id", user.id)
+          .maybeSingle()
           .then(({ data }) => data && setMemberSince(formatMonthYear(data.created_at)));
       }
     }
@@ -54,23 +59,24 @@ function ProfilePage() {
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
+        .from("avatars")
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
       if (user.isVaultUser) {
         // Update vault user in activity_log
-        const { data: log } = await supabase.from("activity_log")
+        const { data: log } = await supabase
+          .from("activity_log")
           .select("id, detail")
           .eq("module", "INTERNAL_AUTH")
           .eq("action", "USER_DATA")
@@ -80,14 +86,16 @@ function ProfilePage() {
         if (log) {
           const detail = JSON.parse(log.detail);
           detail.avatarUrl = publicUrl;
-          const { error: updateError } = await supabase.from("activity_log")
+          const { error: updateError } = await supabase
+            .from("activity_log")
             .update({ detail: JSON.stringify(detail) })
             .eq("id", log.id);
           if (updateError) throw updateError;
         }
       } else {
         // Update standard user in profiles
-        const { error: updateError } = await supabase.from("profiles")
+        const { error: updateError } = await supabase
+          .from("profiles")
           .update({ avatar_url: publicUrl })
           .eq("id", user.id);
         if (updateError) throw updateError;
@@ -107,7 +115,8 @@ function ProfilePage() {
     setSaving(true);
     try {
       if (user.isVaultUser) {
-        const { data: log } = await supabase.from("activity_log")
+        const { data: log } = await supabase
+          .from("activity_log")
           .select("id, detail")
           .eq("module", "INTERNAL_AUTH")
           .eq("action", "USER_DATA")
@@ -118,16 +127,20 @@ function ProfilePage() {
           const detail = JSON.parse(log.detail);
           detail.fullName = fullName;
           detail.username = username;
-          const { error } = await supabase.from("activity_log")
+          const { error } = await supabase
+            .from("activity_log")
             .update({ detail: JSON.stringify(detail) })
             .eq("id", log.id);
           if (error) throw error;
         }
       } else {
-        const { error } = await supabase.from("profiles").update({
-          full_name: fullName,
-          username
-        }).eq("id", user.id);
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            full_name: fullName,
+            username,
+          })
+          .eq("id", user.id);
         if (error) throw error;
       }
 
@@ -146,7 +159,8 @@ function ProfilePage() {
     setSaving(true);
     try {
       if (user.isVaultUser) {
-        const { data: log } = await supabase.from("activity_log")
+        const { data: log } = await supabase
+          .from("activity_log")
           .select("id, detail")
           .eq("module", "INTERNAL_AUTH")
           .eq("action", "USER_DATA")
@@ -156,7 +170,8 @@ function ProfilePage() {
         if (log) {
           const detail = JSON.parse(log.detail);
           detail.password = pw;
-          const { error } = await supabase.from("activity_log")
+          const { error } = await supabase
+            .from("activity_log")
             .update({ detail: JSON.stringify(detail) })
             .eq("id", log.id);
           if (error) throw error;
@@ -168,7 +183,10 @@ function ProfilePage() {
 
       await logActivity("Password Change", "Profile", "Password updated");
       toast.success("Password updated successfully. Logging out...");
-      setTimeout(async () => { await logout(); window.location.href = "/login"; }, 1500);
+      setTimeout(async () => {
+        await logout();
+        window.location.href = "/login";
+      }, 1500);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -181,7 +199,11 @@ function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <PageHeader icon={UserIcon} title="My Profile" subtitle="Update your identity and account security" />
+      <PageHeader
+        icon={UserIcon}
+        title="My Profile"
+        subtitle="Update your identity and account security"
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Profile Card */}
@@ -189,9 +211,15 @@ function ProfilePage() {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="flex flex-col items-center text-center">
               <div className="relative group">
-                <div className={`h-32 w-32 overflow-hidden rounded-full border-4 border-background ring-2 ring-gold/20 shadow-xl transition-all ${!user.avatarUrl ? avatarColor(user.username) : ""}`}>
+                <div
+                  className={`h-32 w-32 overflow-hidden rounded-full border-4 border-background ring-2 ring-gold/20 shadow-xl transition-all ${!user.avatarUrl ? avatarColor(user.username) : ""}`}
+                >
                   {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.fullName} className="h-full w-full object-cover" />
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.fullName}
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-4xl font-bold text-white">
                       {initials(user.fullName)}
@@ -210,7 +238,13 @@ function ProfilePage() {
                 >
                   <Camera size={18} />
                 </button>
-                <input type="file" ref={fileInputRef} onChange={onFileChange} accept="image/*" className="hidden" />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={onFileChange}
+                  accept="image/*"
+                  className="hidden"
+                />
               </div>
 
               <div className="mt-4">
@@ -220,7 +254,11 @@ function ProfilePage() {
                     {user.role}
                   </span>
                 </div>
-                {memberSince && <p className="mt-2 text-xs text-muted-foreground italic">Member since {memberSince}</p>}
+                {memberSince && (
+                  <p className="mt-2 text-xs text-muted-foreground italic">
+                    Member since {memberSince}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -235,16 +273,32 @@ function ProfilePage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label>Full Name</Label>
-                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your Display Name" />
+                <Input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Your Display Name"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Username</Label>
-                <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Login ID" />
+                <Input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Login ID"
+                />
               </div>
             </div>
             <div className="mt-6">
-              <Button onClick={saveAccount} className="w-full bg-navy hover:bg-navy-hover" disabled={saving}>
-                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              <Button
+                onClick={saveAccount}
+                className="w-full bg-navy hover:bg-navy-hover"
+                disabled={saving}
+              >
+                {saving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
                 Save Profile Changes
               </Button>
             </div>
@@ -276,14 +330,27 @@ function ProfilePage() {
                 {pw && (
                   <div className="space-y-1.5 pt-1">
                     <div className="h-1 overflow-hidden rounded-full bg-muted">
-                      <div className={`h-full transition-all duration-500 ${strength.color}`} style={{ width: `${strength.pct}%` }} />
+                      <div
+                        className={`h-full transition-all duration-500 ${strength.color}`}
+                        style={{ width: `${strength.pct}%` }}
+                      />
                     </div>
-                    <p className="text-[10px] text-muted-foreground">Password Strength: <span className="font-bold">{strength.label}</span></p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Password Strength: <span className="font-bold">{strength.label}</span>
+                    </p>
                   </div>
                 )}
               </div>
-              <Button onClick={updatePassword} disabled={pw.length < 8 || saving} className="w-full bg-gold hover:bg-gold-hover text-navy font-bold">
-                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}
+              <Button
+                onClick={updatePassword}
+                disabled={pw.length < 8 || saving}
+                className="w-full bg-gold hover:bg-gold-hover text-navy font-bold"
+              >
+                {saving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <KeyRound className="mr-2 h-4 w-4" />
+                )}
                 Update Account Password
               </Button>
             </div>

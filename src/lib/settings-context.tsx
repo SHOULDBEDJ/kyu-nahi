@@ -17,19 +17,23 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const { data, error } = await supabase.from("settings").select("*").maybeSingle();
       if (error) throw error;
-      
+
       if (!data) {
         // Only auto-bootstrap on the client to avoid SSR write conflicts
-        if (typeof window !== 'undefined') {
-          const { data: newData } = await supabase.from("settings").insert({
-            farm_name: "The 16 EYES Farm House",
-            accent_color: "#1a237e"
-          }).select("*").single();
+        if (typeof window !== "undefined") {
+          const { data: newData } = await supabase
+            .from("settings")
+            .insert({
+              farm_name: "The 16 EYES Farm House",
+              accent_color: "#1a237e",
+            })
+            .select("*")
+            .single();
           setSettings(newData);
         }
       } else {
         setSettings(data);
-        if (data.accent_color && typeof window !== 'undefined') {
+        if (data.accent_color && typeof window !== "undefined") {
           document.documentElement.style.setProperty("--navy", data.accent_color);
           document.documentElement.style.setProperty("--navy-hover", data.accent_color + "ee");
         }
@@ -43,17 +47,24 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     fetchSettings();
-    
+
     // Subscribe to changes
     const channel = supabase
       .channel("settings-changes")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "settings" }, (payload) => {
-        setSettings(payload.new);
-        if (payload.new.accent_color) {
-          document.documentElement.style.setProperty("--navy", payload.new.accent_color);
-          document.documentElement.style.setProperty("--navy-hover", payload.new.accent_color + "ee");
-        }
-      })
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "settings" },
+        (payload) => {
+          setSettings(payload.new);
+          if (payload.new.accent_color) {
+            document.documentElement.style.setProperty("--navy", payload.new.accent_color);
+            document.documentElement.style.setProperty(
+              "--navy-hover",
+              payload.new.accent_color + "ee",
+            );
+          }
+        },
+      )
       .subscribe();
 
     return () => {

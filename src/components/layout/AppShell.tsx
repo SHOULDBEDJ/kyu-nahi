@@ -8,7 +8,9 @@ export function AppShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   // Close mobile drawer on route change
-  useEffect(() => { setOpen(false); }, [path]);
+  useEffect(() => {
+    setOpen(false);
+  }, [path]);
 
   return (
     <div className="flex min-h-screen w-full bg-background">

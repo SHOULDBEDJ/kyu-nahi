@@ -8,46 +8,95 @@ import { hasConflict, type SlotDef, type BookingLite } from "@/lib/slots";
 import { todayIST } from "@/lib/format";
 
 interface FormValues {
-  booking_date: string; slot_id: string; customer_name: string; mobile: string;
-  id_proof_type?: "Aadhaar"|"PAN"|"Passport"|"DL"|"VoterID"|"";
-  id_proof_number?: string; guests: number;
-  agreed_total: number; advance_paid: number; discount: number;
-  status: "Confirmed"|"Pending"|"Cancelled"; notes?: string;
+  booking_date: string;
+  slot_id: string;
+  customer_name: string;
+  mobile: string;
+  id_proof_type?: "Aadhaar" | "PAN" | "Passport" | "DL" | "VoterID" | "";
+  id_proof_number?: string;
+  guests: number;
+  agreed_total: number;
+  advance_paid: number;
+  discount: number;
+  status: "Confirmed" | "Pending" | "Cancelled";
+  notes?: string;
 }
 
-export interface BookingFormData extends FormValues { id?: string; }
+export interface BookingFormData extends FormValues {
+  id?: string;
+}
 
 export function BookingFormModal({
-  open, onClose, onSaved, initial,
-}: { open: boolean; onClose: () => void; onSaved: () => void; initial?: BookingFormData | null }) {
+  open,
+  onClose,
+  onSaved,
+  initial,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+  initial?: BookingFormData | null;
+}) {
   const [slots, setSlots] = useState<SlotDef[]>([]);
   const [allBookings, setAllBookings] = useState<BookingLite[]>([]);
-  const { register, handleSubmit, watch, reset, setValue, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
     defaultValues: {
-      booking_date: todayIST(), slot_id: "", customer_name: "", mobile: "",
-      id_proof_type: "", id_proof_number: "", guests: 1,
-      agreed_total: 0, advance_paid: 0, discount: 0, status: "Confirmed", notes: "",
+      booking_date: todayIST(),
+      slot_id: "",
+      customer_name: "",
+      mobile: "",
+      id_proof_type: "",
+      id_proof_number: "",
+      guests: 1,
+      agreed_total: 0,
+      advance_paid: 0,
+      discount: 0,
+      status: "Confirmed",
+      notes: "",
     },
   });
 
   const watched = watch();
-  const balance = Number(watched.agreed_total || 0) - Number(watched.advance_paid || 0) - Number(watched.discount || 0);
+  const balance =
+    Number(watched.agreed_total || 0) -
+    Number(watched.advance_paid || 0) -
+    Number(watched.discount || 0);
 
   useEffect(() => {
     if (!open) return;
     (async () => {
       const [{ data: s }, { data: b }] = await Promise.all([
         supabase.from("time_slots").select("*").order("start_time"),
-        supabase.from("bookings").select("id, booking_date, status, slot:time_slots(*)").is("deleted_at", null),
+        supabase
+          .from("bookings")
+          .select("id, booking_date, status, slot:time_slots(*)")
+          .is("deleted_at", null),
       ]);
       setSlots((s ?? []) as any);
       setAllBookings((b ?? []) as any);
       if (initial) reset(initial as any);
-      else reset({
-        booking_date: todayIST(), slot_id: "", customer_name: "", mobile: "",
-        id_proof_type: "", id_proof_number: "", guests: 1,
-        agreed_total: 0, advance_paid: 0, discount: 0, status: "Confirmed", notes: "",
-      });
+      else
+        reset({
+          booking_date: todayIST(),
+          slot_id: "",
+          customer_name: "",
+          mobile: "",
+          id_proof_type: "",
+          id_proof_number: "",
+          guests: 1,
+          agreed_total: 0,
+          advance_paid: 0,
+          discount: 0,
+          status: "Confirmed",
+          notes: "",
+        });
     })();
   }, [open, initial, reset]);
 
@@ -65,15 +114,18 @@ export function BookingFormModal({
       return;
     }
     const payload: any = {
-      booking_date: vals.booking_date, slot_id: vals.slot_id,
-      customer_name: vals.customer_name, mobile: vals.mobile,
+      booking_date: vals.booking_date,
+      slot_id: vals.slot_id,
+      customer_name: vals.customer_name,
+      mobile: vals.mobile,
       id_proof_type: vals.id_proof_type || null,
       id_proof_number: vals.id_proof_number || null,
       guests: Number(vals.guests),
       agreed_total: Number(vals.agreed_total),
       advance_paid: Number(vals.advance_paid),
       discount: Number(vals.discount),
-      status: vals.status, notes: vals.notes || null,
+      status: vals.status,
+      notes: vals.notes || null,
     };
     if (initial?.id) {
       const { error } = await supabase.from("bookings").update(payload).eq("id", initial.id);
@@ -83,12 +135,17 @@ export function BookingFormModal({
     } else {
       const { data: u } = await supabase.auth.getUser();
       payload.created_by = u.user?.id;
-      const { error, data } = await supabase.from("bookings").insert(payload).select("order_id").single();
+      const { error, data } = await supabase
+        .from("bookings")
+        .insert(payload)
+        .select("order_id")
+        .single();
       if (error) return toast.error(error.message);
       await logActivity("Create", "Bookings", `Created booking ${data?.order_id}`);
       toast.success(`Booking ${data?.order_id} created`);
     }
-    onSaved(); onClose();
+    onSaved();
+    onClose();
   };
 
   const handleSaveDraft = async () => {
@@ -100,12 +157,12 @@ export function BookingFormModal({
         module: "BOOKING_DRAFT",
         action: "SAVE",
         detail: JSON.stringify({ ...vals, id: initial?.id }),
-        user_id: u.user?.id
+        user_id: u.user?.id,
       };
-      
+
       const { error } = await supabase.from("activity_log").insert(payload);
       if (error) throw error;
-      
+
       toast.success("Booking saved as draft");
       onClose();
     } catch (error: any) {
@@ -118,35 +175,70 @@ export function BookingFormModal({
   const [savingDraft, setSavingDraft] = useState(false);
 
   return (
-    <Modal open={open} onClose={onClose} title={initial?.id ? "Edit Booking" : "Add Booking"} size="lg"
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={initial?.id ? "Edit Booking" : "Add Booking"}
+      size="lg"
       footer={
         <div className="flex w-full items-center justify-between">
           <div className="flex gap-2">
             {!initial?.id && (
-              <button onClick={handleSaveDraft} disabled={isSubmitting || savingDraft} type="button" className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50">
+              <button
+                onClick={handleSaveDraft}
+                disabled={isSubmitting || savingDraft}
+                type="button"
+                className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
                 {savingDraft ? "Saving Draft..." : "Save as Draft"}
               </button>
             )}
           </div>
           <div className="flex gap-2">
-            <button onClick={onClose} type="button" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-muted">Cancel</button>
-            <button form="booking-form" type="submit" disabled={isSubmitting || savingDraft} className="rounded-md bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-hover disabled:opacity-50">
+            <button
+              onClick={onClose}
+              type="button"
+              className="rounded-md border border-border px-4 py-2 text-sm hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              form="booking-form"
+              type="submit"
+              disabled={isSubmitting || savingDraft}
+              className="rounded-md bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-hover disabled:opacity-50"
+            >
               {isSubmitting ? "Saving…" : "Save Booking"}
             </button>
           </div>
         </div>
-      }>
-      <form id="booking-form" onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      }
+    >
+      <form
+        id="booking-form"
+        onSubmit={handleSubmit(onSubmit)}
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+      >
         <Field label="Booking Date *" error={errors.booking_date?.message}>
-          <input type="date" {...register("booking_date", { required: "Required" })} className={inputCls} />
+          <input
+            type="date"
+            {...register("booking_date", { required: "Required" })}
+            className={inputCls}
+          />
         </Field>
         <Field label="Time Slot *" error={errors.slot_id?.message}>
           <select {...register("slot_id", { required: "Required" })} className={inputCls}>
             <option value="">Select slot</option>
-            {slots.map((s) => <option key={s.id} value={s.id}>{s.name} ({fmt(s.start_time)}–{fmt(s.end_time)})</option>)}
+            {slots.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({fmt(s.start_time)}–{fmt(s.end_time)})
+              </option>
+            ))}
           </select>
           {availability && (
-            <div className={`mt-1 text-xs font-medium ${availability.ok ? "text-success" : "text-danger"}`}>
+            <div
+              className={`mt-1 text-xs font-medium ${availability.ok ? "text-success" : "text-danger"}`}
+            >
               {availability.ok ? "Available ✓" : "Not Available ✗"}
             </div>
           )}
@@ -156,15 +248,28 @@ export function BookingFormModal({
         </Field>
         <Field label="Mobile *" error={errors.mobile?.message}>
           <div className="flex">
-            <span className="rounded-l-md border border-r-0 border-input bg-muted px-3 py-2 text-sm">+91</span>
-            <input type="tel" inputMode="numeric" maxLength={10} {...register("mobile", { required: "Required", pattern: { value: /^\d{10}$/, message: "10 digits" } })} className={inputCls + " rounded-l-none"} />
+            <span className="rounded-l-md border border-r-0 border-input bg-muted px-3 py-2 text-sm">
+              +91
+            </span>
+            <input
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              {...register("mobile", {
+                required: "Required",
+                pattern: { value: /^\d{10}$/, message: "10 digits" },
+              })}
+              className={inputCls + " rounded-l-none"}
+            />
           </div>
         </Field>
         <Field label="ID Proof Type">
           <select {...register("id_proof_type")} className={inputCls}>
             <option value="">None</option>
-            <option value="Aadhaar">Aadhaar</option><option value="PAN">PAN</option>
-            <option value="Passport">Passport</option><option value="DL">Driving License</option>
+            <option value="Aadhaar">Aadhaar</option>
+            <option value="PAN">PAN</option>
+            <option value="Passport">Passport</option>
+            <option value="DL">Driving License</option>
             <option value="VoterID">Voter ID</option>
           </select>
         </Field>
@@ -172,24 +277,57 @@ export function BookingFormModal({
           <input {...register("id_proof_number")} className={inputCls} />
         </Field>
         <Field label="Number of Guests *" error={errors.guests?.message}>
-          <input type="number" inputMode="numeric" min={1} {...register("guests", { required: "Required", min: { value: 1, message: "Min 1" } })} className={inputCls} />
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            {...register("guests", { required: "Required", min: { value: 1, message: "Min 1" } })}
+            className={inputCls}
+          />
         </Field>
         <Field label="Status">
           <select {...register("status")} className={inputCls}>
-            <option>Confirmed</option><option>Pending</option><option>Cancelled</option>
+            <option>Confirmed</option>
+            <option>Pending</option>
+            <option>Cancelled</option>
           </select>
         </Field>
         <Field label="Agreed Total ₹ *" error={errors.agreed_total?.message}>
-          <input type="number" inputMode="decimal" min={0} step="0.01" {...register("agreed_total", { required: "Required", valueAsNumber: true })} className={inputCls} />
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            {...register("agreed_total", { required: "Required", valueAsNumber: true })}
+            className={inputCls}
+          />
         </Field>
         <Field label="Advance Paid ₹">
-          <input type="number" inputMode="decimal" min={0} step="0.01" {...register("advance_paid", { valueAsNumber: true })} className={inputCls} />
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            {...register("advance_paid", { valueAsNumber: true })}
+            className={inputCls}
+          />
         </Field>
         <Field label="Discount ₹">
-          <input type="number" inputMode="decimal" min={0} step="0.01" {...register("discount", { valueAsNumber: true })} className={inputCls} />
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            {...register("discount", { valueAsNumber: true })}
+            className={inputCls}
+          />
         </Field>
         <Field label="Remaining Balance ₹">
-          <input value={balance.toFixed(2)} readOnly className={inputCls + " bg-muted/50 font-semibold"} />
+          <input
+            value={balance.toFixed(2)}
+            readOnly
+            className={inputCls + " bg-muted/50 font-semibold"}
+          />
         </Field>
         <div className="sm:col-span-2">
           <Field label="Notes">
@@ -201,10 +339,24 @@ export function BookingFormModal({
   );
 }
 
-const inputCls = "w-full rounded-md border border-input bg-muted px-3 py-2 text-base outline-none focus:border-navy";
-function fmt(t: string) { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; const hh = ((h + 11) % 12) + 1; return `${hh}:${String(m).padStart(2, "0")} ${ap}`; }
+const inputCls =
+  "w-full rounded-md border border-input bg-muted px-3 py-2 text-base outline-none focus:border-navy";
+function fmt(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  const ap = h >= 12 ? "PM" : "AM";
+  const hh = ((h + 11) % 12) + 1;
+  return `${hh}:${String(m).padStart(2, "0")} ${ap}`;
+}
 
-function Field({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
+function Field({
+  label,
+  children,
+  error,
+}: {
+  label: string;
+  children: React.ReactNode;
+  error?: string;
+}) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-medium">{label}</span>

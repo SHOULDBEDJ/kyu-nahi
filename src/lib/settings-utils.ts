@@ -8,21 +8,19 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const uploadBrandingAsset = async (file: File, path: string): Promise<string> => {
   const bucket = "branding";
-  
+
   // 1. Upload the file
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, {
-      upsert: true,
-      contentType: file.type,
-    });
+  const { data, error } = await supabase.storage.from(bucket).upload(path, file, {
+    upsert: true,
+    contentType: file.type,
+  });
 
   if (error) throw error;
 
   // 2. Get the public URL
-  const { data: { publicUrl } } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(data.path);
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(bucket).getPublicUrl(data.path);
 
   return publicUrl;
 };
@@ -31,12 +29,23 @@ export const uploadBrandingAsset = async (file: File, path: string): Promise<str
  * Generates a full system backup as a JSON object.
  */
 export const generateFullBackup = async () => {
-  const tables = ["settings", "time_slots", "bookings", "incomes", "expenses", "income_types", "expense_types", "profiles", "user_roles", "activity_log"];
-  
+  const tables = [
+    "settings",
+    "time_slots",
+    "bookings",
+    "incomes",
+    "expenses",
+    "income_types",
+    "expense_types",
+    "profiles",
+    "user_roles",
+    "activity_log",
+  ];
+
   const backup: any = {
     version: "1.0",
     timestamp: new Date().toISOString(),
-    data: {}
+    data: {},
   };
 
   for (const table of tables) {
@@ -63,14 +72,16 @@ export const restoreFromBackup = async (backupJson: any) => {
   const tables = Object.keys(backupJson.data);
   const skipTables = ["activity_log", "backup_history", "user_roles", "profiles"];
   const results = { restored: [] as string[], skipped: [] as string[], errors: [] as string[] };
-  
+
   for (const table of tables) {
     if (skipTables.includes(table)) {
       results.skipped.push(table);
       continue;
     }
-    
-    const { error } = await supabase.from(table).upsert(backupJson.data[table], { onConflict: "id" });
+
+    const { error } = await supabase
+      .from(table)
+      .upsert(backupJson.data[table], { onConflict: "id" });
     if (error) {
       results.errors.push(`${table}: ${error.message}`);
     } else {

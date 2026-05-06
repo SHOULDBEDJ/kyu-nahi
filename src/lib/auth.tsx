@@ -31,14 +31,22 @@ const Ctx = createContext<AuthCtx | null>(null);
 async function loadProfile(userId: string): Promise<AuthUser | null> {
   // Check if it's a real Supabase user
   const [{ data: profile }, { data: roles }] = await Promise.all([
-    supabase.from("profiles").select("id, username, full_name, email, avatar_url").eq("id", userId).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("id, username, full_name, email, avatar_url")
+      .eq("id", userId)
+      .maybeSingle(),
     supabase.from("user_roles").select("role, permissions").eq("user_id", userId),
   ]);
 
   if (profile) {
     const list = (roles ?? []).map((r) => r.role as AppRole);
-    const role: AppRole = list.includes("SuperAdmin") ? "SuperAdmin" : list.includes("Admin") ? "Admin" : "Staff";
-    const permissions = roles?.find(r => r.role === role)?.permissions;
+    const role: AppRole = list.includes("SuperAdmin")
+      ? "SuperAdmin"
+      : list.includes("Admin")
+        ? "Admin"
+        : "Staff";
+    const permissions = roles?.find((r) => r.role === role)?.permissions;
     return {
       id: profile.id,
       username: profile.username,
@@ -46,12 +54,13 @@ async function loadProfile(userId: string): Promise<AuthUser | null> {
       email: profile.email,
       avatarUrl: profile.avatar_url,
       role,
-      permissions
+      permissions,
     };
   }
 
   // Check if it's a vault user (stored in activity_log)
-  const { data: vaultLog } = await supabase.from("activity_log")
+  const { data: vaultLog } = await supabase
+    .from("activity_log")
     .select("detail")
     .eq("module", "INTERNAL_AUTH")
     .eq("action", "USER_DATA")
@@ -70,7 +79,7 @@ async function loadProfile(userId: string): Promise<AuthUser | null> {
           avatarUrl: u.avatarUrl || null,
           role: u.role as AppRole,
           permissions: u.permissions,
-          isVaultUser: true
+          isVaultUser: true,
         };
       }
     } catch (e) {}
@@ -114,11 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Auto-provision default admin if no internal users exist
     (async () => {
-      const { data: existing } = await supabase.from("activity_log")
+      const { data: existing } = await supabase
+        .from("activity_log")
         .select("id")
         .eq("module", "INTERNAL_AUTH")
         .limit(1);
-      
+
       if (!existing || existing.length === 0) {
         console.log("Provisioning default admin...");
         const defaultAdmin = {
@@ -128,17 +138,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fullName: "Narayan Solanki",
           role: "SuperAdmin",
           avatarUrl: null,
-          permissions: { all: true }
+          permissions: { all: true },
         };
         const { error } = await supabase.from("activity_log").insert({
           module: "INTERNAL_AUTH",
           action: "USER_DATA",
           detail: JSON.stringify(defaultAdmin),
-          user_id: "00000000-0000-0000-0000-000000000000" // Use valid UUID format
+          user_id: "00000000-0000-0000-0000-000000000000", // Use valid UUID format
         });
-        
+
         if (error) {
-          console.error("Provisioning failed. This is usually due to RLS policies. Please run the SQL migration for activity_log policies.", error);
+          console.error(
+            "Provisioning failed. This is usually due to RLS policies. Please run the SQL migration for activity_log policies.",
+            error,
+          );
         } else {
           console.log("Provisioning successful!");
         }
@@ -151,7 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string, _remember: boolean) => {
     // 1. Try Vault Login First (Internal Management Users)
-    const { data: vaultUsers } = await supabase.from("activity_log")
+    const { data: vaultUsers } = await supabase
+      .from("activity_log")
       .select("detail")
       .eq("module", "INTERNAL_AUTH")
       .eq("action", "USER_DATA");
@@ -170,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               avatarUrl: u.avatarUrl || null,
               role: u.role,
               permissions: u.permissions,
-              isVaultUser: true
+              isVaultUser: true,
             });
             toast.success("Welcome back, " + u.fullName);
             return;
@@ -192,7 +206,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
   };
 
-  return <Ctx.Provider value={{ user, session, loading, login, logout, refresh }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ user, session, loading, login, logout, refresh }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
 export function useAuth() {
