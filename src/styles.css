@@ -1,18 +1,5 @@
 @import "tailwindcss";
-@source "../src";
 @import "tw-animate-css";
-
-@keyframes loading-bar {
-  0% {
-    transform: translateX(-100%);
-  }
-  50% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
 
 @theme {
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -63,7 +50,7 @@
   --color-info-bg: var(--info-bg);
   --color-info-fg: var(--info-fg);
 
-  /* Slot colors */
+  /* Slots */
   --color-slot-morning: var(--slot-morning);
   --color-slot-eve-eve: var(--slot-eve-eve);
   --color-slot-photo: var(--slot-photo);
@@ -71,119 +58,115 @@
   --color-slot-full: var(--slot-full);
 
   --color-sidebar: var(--navy);
-  --color-sidebar-foreground: oklch(1 0 0);
+  --color-sidebar-foreground: #ffffff;
 
+  /* Animations */
+  @keyframes loading-bar {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(0%); }
+    100% { transform: translateX(100%); }
+  }
   --animate-loading-bar: loading-bar 2s ease-in-out infinite;
-}
 
-:root {
-  --radius: 0.625rem;
-
-  /* Surfaces */
-  --background: oklch(0.975 0.005 85); /* #f5f4ef warm off-white */
-  --foreground: oklch(0.18 0 0); /* #1a1a1a near-black */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0 0);
-
-  /* Brand */
-  --navy: oklch(0.27 0.13 268); /* #1a237e */
-  --navy-hover: oklch(0.32 0.13 268); /* #283593 */
-  --gold: oklch(0.78 0.15 75); /* #f5a623 */
-  --gold-hover: oklch(0.73 0.15 75); /* #e6951a */
-  --maroon: oklch(0.42 0.16 25); /* #8b1a1a */
-
-  --primary: var(--navy);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.96 0.005 85);
-  --secondary-foreground: oklch(0.18 0 0);
-  --muted: oklch(0.95 0 0); /* #f2f2f2 input bg */
-  --muted-foreground: oklch(0.55 0 0); /* #6b6b6b */
-  --accent: oklch(0.96 0.005 85);
-  --accent-foreground: oklch(0.18 0 0);
-
-  /* Semantic */
-  --success: oklch(0.65 0.16 145); /* #27ae60 */
-  --success-bg: oklch(0.94 0.05 145); /* #d4edda */
-  --success-fg: oklch(0.32 0.07 145); /* #155724 */
-  --warning: oklch(0.82 0.16 85); /* #ffc107 */
-  --warning-bg: oklch(0.96 0.07 90); /* #fff3cd */
-  --warning-fg: oklch(0.42 0.08 75); /* #856404 */
-  --danger: oklch(0.62 0.22 28); /* #e74c3c */
-  --danger-bg: oklch(0.92 0.05 25); /* #f8d7da */
-  --danger-fg: oklch(0.35 0.12 25); /* #721c24 */
-  --info-bg: oklch(0.92 0.04 210); /* #d1ecf1 */
-  --info-fg: oklch(0.36 0.07 210); /* #0c5460 */
-
-  --destructive: oklch(0.55 0.18 25);
-  --destructive-foreground: oklch(1 0 0);
-
-  --border: oklch(0.92 0 0); /* #e8e8e8 */
-  --input: oklch(0.92 0 0);
-  --ring: var(--navy);
-
-  /* Slots */
-  --slot-morning: oklch(0.7 0.16 145); /* #4caf50 */
-  --slot-eve-eve: oklch(0.82 0.16 85); /* #ffc107 */
-  --slot-photo: var(--navy); /* #1a237e */
-  --slot-eve: oklch(0.83 0.07 230); /* #87ceeb */
-  --slot-full: oklch(0.7 0.18 40); /* #ff7043 */
-
-  --chart-1: var(--navy);
-  --chart-2: var(--gold);
-  --chart-3: var(--success);
-  --chart-4: var(--danger);
-  --chart-5: var(--slot-eve);
-}
-
-.dark {
-  --background: oklch(0.18 0 0);
-  --foreground: oklch(0.98 0 0);
-  --card: oklch(0.22 0 0);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.22 0 0);
-  --popover-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.27 0 0);
-  --muted-foreground: oklch(0.7 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 12%);
+  @keyframes lk-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  --animate-lk-pulse: lk-pulse 1.5s ease-in-out infinite;
 }
 
 @layer base {
+  :root {
+    --radius: 0.625rem;
+
+    /* Surfaces */
+    --background: oklch(0.975 0.005 85);
+    --foreground: oklch(0.18 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.18 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.18 0 0);
+
+    /* Brand */
+    --navy: oklch(0.27 0.13 268);
+    --navy-hover: oklch(0.32 0.13 268);
+    --gold: oklch(0.78 0.15 75);
+    --gold-hover: oklch(0.73 0.15 75);
+    --maroon: oklch(0.42 0.16 25);
+
+    --primary: var(--navy);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.96 0.005 85);
+    --secondary-foreground: oklch(0.18 0 0);
+    --muted: oklch(0.95 0 0);
+    --muted-foreground: oklch(0.55 0 0);
+    --accent: oklch(0.96 0.005 85);
+    --accent-foreground: oklch(0.18 0 0);
+
+    --success: oklch(0.65 0.16 145);
+    --success-bg: oklch(0.94 0.05 145);
+    --success-fg: oklch(0.32 0.07 145);
+    --warning: oklch(0.82 0.16 85);
+    --warning-bg: oklch(0.96 0.07 90);
+    --warning-fg: oklch(0.42 0.08 75);
+    --danger: oklch(0.62 0.22 28);
+    --danger-bg: oklch(0.92 0.05 25);
+    --danger-fg: oklch(0.35 0.12 25);
+    --info-bg: oklch(0.92 0.04 210);
+    --info-fg: oklch(0.36 0.07 210);
+
+    --destructive: oklch(0.55 0.18 25);
+    --destructive-foreground: oklch(1 0 0);
+
+    --border: oklch(0.92 0 0);
+    --input: oklch(0.92 0 0);
+    --ring: var(--navy);
+
+    /* Slots */
+    --slot-morning: oklch(0.7 0.16 145);
+    --slot-eve-eve: oklch(0.82 0.16 85);
+    --slot-photo: var(--navy);
+    --slot-eve: oklch(0.83 0.07 230);
+    --slot-full: oklch(0.7 0.18 40);
+
+    --chart-1: var(--navy);
+    --chart-2: var(--gold);
+    --chart-3: var(--success);
+    --chart-4: var(--danger);
+    --chart-5: var(--slot-eve);
+  }
+
+  .dark {
+    --background: oklch(0.18 0 0);
+    --foreground: oklch(0.98 0 0);
+    --card: oklch(0.22 0 0);
+    --card-foreground: oklch(0.98 0 0);
+    --popover: oklch(0.22 0 0);
+    --popover-foreground: oklch(0.98 0 0);
+    --muted: oklch(0.27 0 0);
+    --muted-foreground: oklch(0.7 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 12%);
+  }
+
   * {
-    border-color: var(--color-border);
+    border-color: var(--border);
   }
-  html,
-  body {
+  
+  html, body {
     font-family: var(--font-sans);
-  }
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--background);
+    color: var(--foreground);
     -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Skeleton pulse */
-@keyframes lk-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
 .lk-pulse {
-  animation: lk-pulse 1.5s ease-in-out infinite;
+  animation: var(--animate-lk-pulse);
 }
 
-/* Print */
 @media print {
-  .no-print,
-  aside[data-sidebar],
-  header[data-topbar] {
+  .no-print, aside[data-sidebar], header[data-topbar] {
     display: none !important;
   }
   body {
@@ -191,19 +174,8 @@
     color: #000 !important;
     font-size: 12px;
   }
-  table {
-    border-collapse: collapse;
-  }
-  table,
-  th,
-  td {
-    border: 1px solid #ccc !important;
-  }
-  tr {
-    page-break-inside: avoid;
-  }
-  @page {
-    size: A4 portrait;
-    margin: 1.5cm;
-  }
+  table { border-collapse: collapse; }
+  table, th, td { border: 1px solid #ccc !important; }
+  tr { page-break-inside: avoid; }
+  @page { size: A4 portrait; margin: 1.5cm; }
 }
