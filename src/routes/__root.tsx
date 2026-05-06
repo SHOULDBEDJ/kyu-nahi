@@ -49,7 +49,20 @@ export const Route = createRootRoute({
   ),
 });
 
+import { useEffect } from "react";
+
 function RootShell({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((reg) => console.log("SW registered:", reg))
+          .catch((err) => console.error("SW failed:", err));
+      });
+    }
+  }, []);
+
   return (
     <html lang="en">
       <head><HeadContent /></head>
