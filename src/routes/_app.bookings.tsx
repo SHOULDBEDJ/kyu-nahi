@@ -104,9 +104,16 @@ function BookingsPage() {
 
   const doDeleteDraft = async () => {
     if (!deletingDraft) return;
-    await supabase.from("activity_log").delete().eq("id", deletingDraft.log_id);
-    toast.success("Draft deleted");
-    setDeletingDraft(null); load();
+    try {
+      const { error } = await supabase.from("activity_log").delete().eq("id", deletingDraft.log_id);
+      if (error) throw error;
+      toast.success("Draft deleted");
+      setDeletingDraft(null); 
+      load();
+    } catch (error: any) {
+      console.error("Delete draft error:", error);
+      toast.error("Failed to delete draft: " + error.message);
+    }
   };
 
   return (
@@ -144,7 +151,10 @@ function BookingsPage() {
         </div>
       </div>
 
-      <div className="text-xs text-muted-foreground">{filtered.length} results found</div>      {activeSection === "drafts" ? (
+      <div className="text-xs text-muted-foreground">
+        {activeSection === "drafts" ? drafts.length : filtered.length} results found
+      </div>
+      {activeSection === "drafts" ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {drafts.length === 0 ? (
             <div className="col-span-full py-10 text-center text-muted-foreground">No drafts saved.</div>
