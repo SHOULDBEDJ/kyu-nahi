@@ -52,17 +52,6 @@
   --color-danger-fg: var(--danger-fg);
   --color-info-bg: var(--info-bg);
   --color-info-fg: var(--info-fg);
-@layer utilities {
-  .animate-loading-bar {
-    animation: loading-bar 2s ease-in-out infinite;
-  }
-}
-
-@keyframes loading-bar {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(0%); }
-  100% { transform: translateX(100%); }
-}
 
   /* Slot colors */
   --color-slot-morning: var(--slot-morning);
@@ -147,6 +136,18 @@
   --muted-foreground: oklch(0.7 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 12%);
+}
+
+@layer utilities {
+  .animate-loading-bar {
+    animation: loading-bar 2s ease-in-out infinite;
+  }
+}
+
+@keyframes loading-bar {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
 }
 
 @layer base {
