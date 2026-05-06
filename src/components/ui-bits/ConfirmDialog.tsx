@@ -9,6 +9,7 @@ export function ConfirmDialog({
   danger,
   onConfirm,
   onCancel,
+  loading,
 }: {
   open: boolean;
   title: string;
